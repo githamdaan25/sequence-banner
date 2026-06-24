@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sequence Banner</title>
+  <meta name="description" content="Premium scrub-driven image sequence, single viewport." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       LOADER
+       Shown while frames preload. Hidden once preload completes.
+  ============================================================= -->
+  <div id="loader" class="loader">
+    <div class="loader__content">
+      <div class="loader__label">Loading</div>
+      <div class="loader__bar-track">
+        <div class="loader__bar-fill" id="loaderBarFill"></div>
+      </div>
+      <div class="loader__percent" id="loaderPercent">0%</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SEQUENCE BANNER
+       Single full-viewport section. Mouse wheel / trackpad / touch
+       input scrubs through the frame sequence, but the page itself
+       never scrolls — the viewport stays completely still.
+  ============================================================= -->
+  <section class="sequence" id="sequenceSection">
+    <div class="sequence__sticky" id="sequenceSticky">
+      <canvas id="sequenceCanvas" class="sequence__canvas"></canvas>
+
+      <!-- Optional overlay text shown above the canvas -->
+      <div class="sequence__overlay">
+        <h1 class="sequence__title" id="overlayTitle"></h1>
+        <p class="sequence__subtitle" id="overlaySubtitle"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- App scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/preloader.js"></script>
+  <script src="js/canvasRenderer.js"></script>
+  <script src="js/scrubController.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
