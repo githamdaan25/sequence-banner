@@ -3,33 +3,34 @@
  * -------------------------------------------------------------
  * Lets the user "scroll" through the frame sequence using their
  * mouse wheel / trackpad / touch swipe, WITHOUT the page itself
- * ever scrolling — the viewport stays completely still. Wheel and
- * touch deltas are captured, scroll/touch-move is prevented, and
- * the accumulated delta drives a target frame index. A lerp then
- * eases the displayed frame toward that target every rAF tick for
- * a smooth, weighted, premium scrub feel (no sudden jumps).
+ * ever scrolling — the viewport stays completely still.
+ *
+ * Two things make this feel fluid rather than mechanical:
+ *  1. SENSITIVITY MULTIPLIER — each unit of input moves the target
+ *     frame further than a 1:1 mapping would, so small scroll
+ *     gestures cover noticeably more of the sequence.
+ *  2. MOMENTUM — every input adds to a velocity value that keeps
+ *     nudging the target frame forward even after input stops,
+ *     decaying smoothly (like inertial scrolling), then a lerp
+ *     eases the displayed frame toward that target every tick.
  * -------------------------------------------------------------
  */
 
 class ScrubController {
-  /**
-   * @param {CanvasRenderer} renderer
-   * @param {HTMLElement} el - element to listen for wheel/touch input on
-   */
   constructor(renderer, el) {
     this.renderer = renderer;
     this.el = el;
 
     this.totalFrames = SEQUENCE_CONFIG.totalFrames;
 
-    // targetFrame: where input has scrubbed us to.
-    // displayFrame: what's actually rendered, eased toward targetFrame.
     this.targetFrame = 0;
     this.displayFrame = 0;
+    this.velocity = 0;
 
-    // How many pixels of wheel/touch movement it takes to traverse
-    // the entire sequence start-to-end. Lower = more sensitive.
     this.pixelsForFullSequence = SEQUENCE_CONFIG.scrubDistancePx || 4000;
+    this.sensitivity = SEQUENCE_CONFIG.scrubSensitivity || 2.5;
+    this.momentumFriction = SEQUENCE_CONFIG.momentumFriction || 0.92;
+    this._velocityFloor = 0.01;
 
     this._onWheel = this._onWheel.bind(this);
     this._onTouchStart = this._onTouchStart.bind(this);
@@ -44,8 +45,6 @@ class ScrubController {
   }
 
   _bindEvents() {
-    // passive: false is required so we can call preventDefault() and
-    // stop the page itself from scrolling on wheel input.
     this.el.addEventListener("wheel", this._onWheel, { passive: false });
     this.el.addEventListener("touchstart", this._onTouchStart, { passive: false });
     this.el.addEventListener("touchmove", this._onTouchMove, { passive: false });
@@ -53,42 +52,44 @@ class ScrubController {
 
   _onWheel(e) {
     e.preventDefault();
-    this._advanceByPixels(e.deltaY);
+    this._addVelocityFromPixels(e.deltaY);
   }
 
   _onTouchStart(e) {
     this._lastTouchY = e.touches[0].clientY;
+    this.velocity = 0;
   }
 
   _onTouchMove(e) {
     e.preventDefault();
     const currentY = e.touches[0].clientY;
     if (this._lastTouchY !== null) {
-      // Swiping up should advance forward, like scrolling down does.
       const deltaY = this._lastTouchY - currentY;
-      this._advanceByPixels(deltaY);
+      this._addVelocityFromPixels(deltaY);
     }
     this._lastTouchY = currentY;
   }
 
-  _advanceByPixels(deltaPx) {
+  _addVelocityFromPixels(deltaPx) {
     const framesPerPixel = (this.totalFrames - 1) / this.pixelsForFullSequence;
-    this.targetFrame += deltaPx * framesPerPixel;
-    this.targetFrame = Math.max(0, Math.min(this.totalFrames - 1, this.targetFrame));
+    this.velocity += deltaPx * framesPerPixel * this.sensitivity;
   }
 
-  /**
-   * Render loop: each frame, ease displayFrame toward targetFrame and
-   * draw it. Keeps running continuously so the easing settles smoothly
-   * even after input stops.
-   */
   _startRenderLoop() {
     this._rafId = requestAnimationFrame(this._tick);
   }
 
   _tick() {
-    const diff = this.targetFrame - this.displayFrame;
+    if (Math.abs(this.velocity) > this._velocityFloor) {
+      this.targetFrame += this.velocity;
+      this.velocity *= this.momentumFriction;
+    } else {
+      this.velocity = 0;
+    }
 
+    this.targetFrame = Math.max(0, Math.min(this.totalFrames - 1, this.targetFrame));
+
+    const diff = this.targetFrame - this.displayFrame;
     if (Math.abs(diff) < 0.05) {
       this.displayFrame = this.targetFrame;
     } else {
