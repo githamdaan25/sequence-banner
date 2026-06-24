@@ -31,8 +31,8 @@ const SEQUENCE_CONFIG = {
   // How many pixels of wheel/touch movement it takes to scrub through
   // the entire sequence start-to-end. Lower = more sensitive.
   scrubDistancePx: 4000,
-  scrubSensitivity: 1.1,
-  momentumFriction: 0.88,
+  //scrubSensitivity: 1.1,
+  //momentumFriction: 0.88,
   // Pixel ratio cap (avoids excessive canvas backing-store size on
   // very high density displays, which would hurt draw performance).
   maxDevicePixelRatio: 2,
